@@ -56,12 +56,12 @@ def render_mentions(user_ids: list[int], empty: str) -> str:
 
 
 def last_run_date(course: Course) -> str | None:
-    """Most recent finished run's date as DD/MM/YYYY, or None if never held."""
+    """Most recent finished run as a Discord long-date timestamp, or None if never held."""
     finished = [run for run in course.runs if run.ended_at is not None]
     if not finished:
         return None
     latest = max(finished, key=lambda run: run.ended_at)
-    return latest.ended_at.strftime("%d/%m/%Y")
+    return discord.utils.format_dt(latest.ended_at, style="D")
 
 
 def build_course_embed(course: Course) -> Embed:
@@ -73,16 +73,17 @@ def build_course_embed(course: Course) -> Embed:
     if course.thumbnail_url:
         embed.set_thumbnail(url=course.thumbnail_url)
     embed.add_field(
-        name="Undervisere", value=render_mentions(host_ids, "*Ingen*"), inline=False
+        name="Undervisere", value=render_mentions(host_ids, "*Ingen*"), inline=True
     )
+    held = last_run_date(course)
+    if held is not None:
+        # Inline + adjacent to Undervisere so the two sit on the same row.
+        embed.add_field(name="Sidst afholdt", value=held, inline=True)
     embed.add_field(
         name=f"Interesserede ({len(signup_ids)})",
         value=render_mentions(signup_ids, "*Ingen endnu*"),
         inline=False,
     )
-    held = last_run_date(course)
-    if held is not None:
-        embed.add_field(name="Sidst afholdt", value=held, inline=False)
     return embed
 
 
