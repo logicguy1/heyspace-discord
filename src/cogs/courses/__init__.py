@@ -22,7 +22,13 @@ from src.lib.cog import BaseCog
 from src.lib.embed import Embed
 
 from .service import build_course_embed, embed_bar_file, refresh_course_message
-from .views import InfoButton, RaisedHandButton, course_message_view
+from .views import (
+    InfoButton,
+    MentionSignupsButton,
+    RaisedHandButton,
+    course_message_view,
+    thread_controls_view,
+)
 
 
 class Courses(BaseCog):
@@ -47,32 +53,6 @@ class Courses(BaseCog):
             embed=Embed.notice(
                 f"Nye kurser bliver nu offentliggjort i {channel.mention}.",
                 title="Kursuskanal opdateret",
-                color="green",
-            ),
-            ephemeral=True,
-        )
-
-    @app_commands.command(
-        name="billedkanal",
-        description="Sæt kanalen hvor billeder til kursus-thumbnails uploades.",
-    )
-    @app_commands.describe(channel="Kanal hvor billeder uploades.")
-    @app_commands.checks.has_permissions(manage_guild=True)
-    async def set_image_channel(
-        self, interaction: discord.Interaction, channel: discord.TextChannel
-    ) -> None:
-        guild_id = self.bot.settings.guild_id
-        async with self.session() as session:
-            cfg = await session.get(GuildConfig, guild_id)
-            if cfg is None:
-                cfg = GuildConfig(guild_id=guild_id)
-                session.add(cfg)
-            cfg.image_channel_id = channel.id
-            await session.commit()
-        await interaction.response.send_message(
-            embed=Embed.notice(
-                f"Billeder til kursus-thumbnails uploades nu i {channel.mention}.",
-                title="Billedkanal opdateret",
                 color="green",
             ),
             ephemeral=True,
@@ -156,6 +136,18 @@ class Courses(BaseCog):
         # Re-render so the embed picks up the thread link now that it exists.
         await refresh_course_message(self.bot, course_id)
 
+        # The starter message's buttons render disabled inside the thread, so post a
+        # separate controls message there. Same persistent view, keyed by course id.
+        await thread.send(
+            embed=Embed.notice(
+                f"Brug knapperne herunder til at tilmelde dig eller administrere "
+                f"{course_mention}.",
+                title="Kursusstyring",
+                color="green",
+            ),
+            view=thread_controls_view(course_id),
+        )
+
         await interaction.response.send_message(
             embed=Embed.notice(
                 f"Kurset {course_mention} er oprettet og offentliggjort i {channel.mention}.",
@@ -207,11 +199,11 @@ class Courses(BaseCog):
 async def setup(bot) -> None:
     # Persistent buttons must be registered so they keep routing across restarts;
     # their custom_id carries the course id, so no per-course state is needed.
-    bot.add_dynamic_items(RaisedHandButton, InfoButton)
+    bot.add_dynamic_items(RaisedHandButton, InfoButton, MentionSignupsButton)
     await bot.add_cog(Courses(bot))
 
 
 async def teardown(bot) -> None:
     # Runs before a reload re-invokes setup, so the dynamic items are cleanly
     # re-registered instead of duplicated.
-    bot.remove_dynamic_items(RaisedHandButton, InfoButton)
+    bot.remove_dynamic_items(RaisedHandButton, InfoButton, MentionSignupsButton)

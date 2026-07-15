@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 import discord
 
 from src.db.models.course import Course
-from src.db.models.guild import GuildConfig
 from src.lib.embed import Embed
 
 from ..service import build_course_embed, embed_bar_file, load_course
@@ -38,10 +37,9 @@ class EditImageButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction) -> None:
         client: "HeySpaceBot" = interaction.client  # type: ignore[assignment]
         async with client.db.session() as session:
-            cfg = await session.get(GuildConfig, client.settings.guild_id)
-            image_channel_id = cfg.image_channel_id if cfg else None
             course = await session.get(Course, self.course_id)
             course_mention = course.mention if course is not None else None
+            thread_id = course.thread_id if course is not None else None
 
         if course_mention is None:
             await interaction.response.edit_message(
@@ -51,37 +49,35 @@ class EditImageButton(discord.ui.Button):
                 view=None,
             )
             return
-        if image_channel_id is None:
+        if thread_id is None:
             await interaction.response.edit_message(
                 embed=Embed.notice(
-                    "Der er ikke valgt en billedkanal endnu. Brug `/billedkanal` først.",
-                    title="Ingen billedkanal valgt",
+                    "Kurset har ingen tråd at uploade i.",
+                    title="Ingen tråd",
                     color="yellow",
                 ),
                 view=None,
             )
             return
 
-        image_channel = client.get_channel(image_channel_id) or await client.fetch_channel(
-            image_channel_id
-        )
+        thread = client.get_channel(thread_id) or await client.fetch_channel(thread_id)
         # Discord relative timestamp — renders as a live countdown in the client.
         deadline = discord.utils.format_dt(
             datetime.now(timezone.utc) + timedelta(seconds=_IMAGE_UPLOAD_TIMEOUT), style="R"
         )
         await interaction.response.edit_message(
             embed=Embed.notice(
-                f"Gå til {image_channel.mention} og upload billedet. Timeout {deadline}.",
+                f"Gå til {thread.mention} og upload billedet. Timeout {deadline}.",
                 title="Afventer billede",
                 color="green",
             ),
             view=None,
         )
 
-        prompt = await image_channel.send(
+        prompt = await thread.send(
             content=interaction.user.mention,  # in content so it actually pings
             embed=Embed.notice(
-                f"Upload billedet til {course_mention} i chatten her (vedhæft en "
+                f"Upload billedet til {course_mention} i tråden her (vedhæft en "
                 f"billedfil).\nTimeout {deadline}.",
                 title="Upload billede",
                 color="green",
@@ -91,7 +87,7 @@ class EditImageButton(discord.ui.Button):
         def check(message: discord.Message) -> bool:
             return (
                 message.author.id == interaction.user.id
-                and message.channel.id == image_channel_id
+                and message.channel.id == thread_id
                 and bool(message.attachments)
             )
 
@@ -160,8 +156,8 @@ class EditImageButton(discord.ui.Button):
                 color="green",
             )
         )
-        # Short-lived confirmation in the image channel, then tidy up.
-        await image_channel.send(
+        # Short-lived confirmation in the thread, then tidy up.
+        await thread.send(
             content=interaction.user.mention,
             embed=Embed.notice(
                 f"Billedet til {course_mention} er modtaget ✅",

@@ -10,6 +10,7 @@ from src.lib.embed import Embed
 
 from ..service import load_course
 from .host_menu import HostMenuView
+from .mention import MentionSignupsButton
 from .signup import RaisedHandButton
 
 if TYPE_CHECKING:
@@ -83,4 +84,13 @@ def course_message_view(course_id: int) -> discord.ui.View:
     view = discord.ui.View(timeout=None)
     view.add_item(RaisedHandButton(course_id))
     view.add_item(InfoButton(course_id))
+    return view
+
+
+def thread_controls_view(course_id: int) -> discord.ui.View:
+    """Persistent view for the in-thread controls: course buttons + mention-all."""
+    view = discord.ui.View(timeout=None)
+    view.add_item(RaisedHandButton(course_id))
+    view.add_item(InfoButton(course_id))
+    view.add_item(MentionSignupsButton(course_id))
     return view
