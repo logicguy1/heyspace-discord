@@ -125,7 +125,7 @@ class EmojiVote(BaseCog):
     )
     @app_commands.describe(
         navn="Emoji-navn (2-32 tegn: bogstaver, tal, understregning).",
-        billede="Billedet der skal blive til emoji.",
+        billede="Billedet der skal blive til en emoji.",
     )
     async def suggest_emoji(
         self, interaction: discord.Interaction, navn: str, billede: discord.Attachment
