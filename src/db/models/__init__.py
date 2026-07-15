@@ -7,6 +7,7 @@ from src.db.models.course import (
     CourseRunAttendee,
     CourseSignup,
 )
+from src.db.models.emoji import EmojiSuggestion
 from src.db.models.guild import GuildConfig
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "CourseRun",
     "CourseRunAttendee",
     "CourseSignup",
+    "EmojiSuggestion",
     "GuildConfig",
 ]

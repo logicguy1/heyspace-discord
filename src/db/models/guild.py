@@ -22,6 +22,8 @@ class GuildConfig(Base):
     log_channel_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     # Channel where course admin messages are posted (nullable until set via command).
     courses_channel_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # Channel where emoji suggestions are posted for voting.
+    emoji_vote_channel_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
