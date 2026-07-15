@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "heyspace-discord"
+version = "0.1.0"
+description = "Cog-based single-guild Discord bot with async SQLAlchemy + Alembic"
+authors = ["Drillenissen"]
+readme = "README.md"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+"discord.py" = "^2.4"
+sqlalchemy = { version = "^2.0", extras = ["asyncio"] }
+asyncpg = "^0.29"
+alembic = "^1.13"
+pydantic-settings = "^2.4"
+python-dotenv = "^1.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
