@@ -68,7 +68,10 @@ def build_course_embed(course: Course) -> Embed:
     """Branded embed showing the course, its hosts and the interested members."""
     host_ids = [h.user_id for h in course.hosts]
     signup_ids = [s.user_id for s in course.signups]
-    embed = Embed(title=course.name, description=course.description)
+    description = course.description
+    if course.thread_url is not None:
+        description += f"\n\n[💬 Gå til kursustråden]({course.thread_url})"
+    embed = Embed(title=course.name, description=description)
     embed.set_image(url=f"attachment://{EMBED_BAR_FILENAME}")
     if course.thumbnail_url:
         embed.set_thumbnail(url=course.thumbnail_url)

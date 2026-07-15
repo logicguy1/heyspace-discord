@@ -29,6 +29,8 @@ class Course(Base):
     # Channel the admin message lives in, and the message id (set after posting).
     channel_id: Mapped[int] = mapped_column(BigInteger)
     message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # Discussion thread attached to the admin message (set after posting).
+    thread_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_by: Mapped[int] = mapped_column(BigInteger)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -61,6 +63,13 @@ class Course(Base):
         """The course name as a hyperlink to its message; bold fallback if unposted."""
         url = self.jump_url
         return f"[{self.name}]({url})" if url is not None else f"**{self.name}**"
+
+    @property
+    def thread_url(self) -> str | None:
+        """Link to the course's discussion thread, or None before it is created."""
+        if self.thread_id is None:
+            return None
+        return f"https://discord.com/channels/{self.guild_id}/{self.thread_id}"
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
         return f"<Course id={self.id} name={self.name!r}>"

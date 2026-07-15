@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from src.db.models.course import Course, CourseSignup
 from src.lib.embed import Embed
 
-from ..service import refresh_course_message
+from ..service import load_course, refresh_course_message
 
 if TYPE_CHECKING:
     from src.bot import HeySpaceBot
@@ -37,6 +37,7 @@ class SignupConfirmView(discord.ui.View):
                 added = False
         await refresh_course_message(client, self.course_id)
         if added:
+            await self._welcome_in_thread(client, interaction.user.id)
             embed = Embed.notice(
                 "Du er nu tilmeldt kurset og står på listen over interesserede.",
                 title="Tilmelding bekræftet",
@@ -49,6 +50,33 @@ class SignupConfirmView(discord.ui.View):
                 color="yellow",
             )
         await interaction.response.edit_message(content=None, embed=embed, view=None)
+
+    async def _welcome_in_thread(self, client: "HeySpaceBot", user_id: int) -> None:
+        """Post a welcome in the course thread, pinging the hosts and the new member.
+
+        Mentioning the new member also adds them to the thread so they can follow along.
+        """
+        async with client.db.session() as session:
+            course = await load_course(session, self.course_id)
+            if course is None or course.thread_id is None:
+                return
+            thread_id = course.thread_id
+            host_ids = [h.user_id for h in course.hosts]
+            course_mention = course.mention
+
+        thread = client.get_channel(thread_id) or await client.fetch_channel(thread_id)
+        host_mentions = " ".join(f"<@{uid}>" for uid in host_ids)
+        # Mentions must be in content to actually ping (and to add the member to the thread).
+        ping = f"<@{user_id}> {host_mentions}".strip()
+        await thread.send(
+            content=ping,
+            embed=Embed.notice(
+                f"Velkommen <@{user_id}> til {course_mention}! 🎉\n"
+                f"Undervisere: {host_mentions or '*ingen*'}",
+                title="Ny tilmelding",
+                color="green",
+            ),
+        )
 
     @discord.ui.button(label="Annullér", style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:

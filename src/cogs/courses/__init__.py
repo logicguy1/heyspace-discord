@@ -21,7 +21,7 @@ from src.db.models.guild import GuildConfig
 from src.lib.cog import BaseCog
 from src.lib.embed import Embed
 
-from .service import build_course_embed, embed_bar_file
+from .service import build_course_embed, embed_bar_file, refresh_course_message
 from .views import InfoButton, RaisedHandButton, course_message_view
 
 
@@ -144,12 +144,17 @@ class Courses(BaseCog):
         message = await channel.send(
             embed=embed, view=course_message_view(course_id), files=[embed_bar_file()]
         )
+        thread = await message.create_thread(name=name[:100], auto_archive_duration=10080)
 
         async with self.session() as session:
             saved = await session.get(Course, course_id)
             saved.message_id = message.id
+            saved.thread_id = thread.id
             await session.commit()
             course_mention = saved.mention
+
+        # Re-render so the embed picks up the thread link now that it exists.
+        await refresh_course_message(self.bot, course_id)
 
         await interaction.response.send_message(
             embed=Embed.notice(
